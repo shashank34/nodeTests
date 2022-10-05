@@ -1,10 +1,14 @@
 import Event from './entities/event.entity';
-
+import WorkShopEvent from './entities/workshop.entity';
 
 export class EventsService {
 
   async getWarmupEvents() {
     return await Event.findAll();
+  }
+
+  async getWorkShops(options: object) {
+    return await WorkShopEvent.findAll(options);
   }
 
   /* TODO: complete getEventsWithWorkshops so that it returns all events including the workshops
@@ -85,7 +89,42 @@ export class EventsService {
      */
 
   async getEventsWithWorkshops() {
-    throw new Error('TODO task 1');
+
+    let events = await this.getWarmupEvents();
+
+    events = events.map(el => el.get({ plain: true }));
+
+    let event_ids = events.map(event=> event.id);
+
+    let workshops = await this.getWorkShops({where: {eventId: event_ids}  });
+
+
+    workshops = workshops.map(el => el.get({ plain: true }));
+
+    let event_hash:any = {};
+    workshops.forEach((workshop)=>{
+      if (event_hash[workshop.eventId]) {
+        event_hash[workshop.eventId].push(workshop);
+      } else {
+        event_hash[workshop.eventId] = [workshop];
+      }
+    })
+
+
+    return events.map((event)=> {
+      let return_item:any = {};
+      return_item.id = event.id;
+      return_item.name  = event.name;
+      return_item.createdAt = event.createdAt;
+      if (event_hash[return_item.id]) {
+        return_item.workshops = event_hash[return_item.id];
+      } else {
+        return_item.workshops = []
+      }
+      return return_item
+    })
+
+    // throw new Error('TODO task 1');
   }
 
   /* TODO: complete getFutureEventWithWorkshops so that it returns events with workshops, that have not yet started
